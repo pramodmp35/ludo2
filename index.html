@@ -1,0 +1,2893 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Ludo Royale — Local Multiplayer</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --red: #ef4444;
+        --green: #22c55e;
+        --yellow: #eab308;
+        --blue: #3b82f6;
+        --red-l: #fecaca;
+        --green-l: #bbf7d0;
+        --yellow-l: #fef08a;
+        --blue-l: #bfdbfe;
+        --bg0: #0b1020;
+        --bg1: #131a30;
+        --card: rgba(255, 255, 255, 0.06);
+        --card-brd: rgba(255, 255, 255, 0.12);
+        --txt: #e8ecf6;
+        --txt-dim: #8b96b5;
+        --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      }
+
+      html,
+      body {
+        height: 100%;
+        font-family: var(--font);
+        color: var(--txt);
+        background:
+          radial-gradient(1200px 700px at 12% -8%, #1e2a54 0%, transparent 60%),
+          radial-gradient(
+            1000px 620px at 92% 108%,
+            #3b1a4a 0%,
+            transparent 62%
+          ),
+          linear-gradient(160deg, var(--bg0), var(--bg1));
+        background-attachment: fixed;
+        overflow-x: hidden;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        min-height: 100vh;
+        padding: 12px;
+      }
+
+      .app {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .brand h1 {
+        font-size: clamp(1.05rem, 2.6vw, 1.75rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        white-space: nowrap;
+      }
+      .brand h1 span {
+        background: linear-gradient(92deg, #60a5fa, #a78bfa 45%, #f472b6);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .brand-die {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        flex: none;
+        background: linear-gradient(145deg, #ffffff, #cdd6ea);
+        box-shadow:
+          0 6px 16px rgba(0, 0, 0, 0.45),
+          inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        padding: 6px;
+        gap: 2px;
+      }
+      .brand-die i {
+        border-radius: 50%;
+        background: #2b3350;
+        opacity: 0;
+      }
+      .brand-die i:nth-child(1),
+      .brand-die i:nth-child(3),
+      .brand-die i:nth-child(5),
+      .brand-die i:nth-child(7),
+      .brand-die i:nth-child(9) {
+        opacity: 1;
+      }
+
+      .rig-badge {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #facc15, #f59e0b);
+        color: #422006;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        box-shadow: 0 4px 14px rgba(250, 204, 21, 0.4);
+        white-space: nowrap;
+      }
+      .rig-badge.hidden {
+        display: none;
+      }
+
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn {
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 11px;
+        padding: 10px 16px;
+        cursor: pointer;
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease,
+          opacity 0.2s;
+        color: #fff;
+        white-space: nowrap;
+      }
+      .btn:active {
+        transform: scale(0.96);
+      }
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6 55%, #d946ef);
+        box-shadow: 0 8px 22px rgba(139, 92, 246, 0.4);
+      }
+      .btn-primary:hover:not(:disabled) {
+        box-shadow: 0 10px 28px rgba(139, 92, 246, 0.6);
+      }
+      .btn-ghost {
+        background: var(--card);
+        border: 1px solid var(--card-brd);
+        backdrop-filter: blur(8px);
+      }
+      .btn-ghost:hover {
+        background: rgba(255, 255, 255, 0.13);
+      }
+      .btn-danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        box-shadow: 0 8px 22px rgba(239, 68, 68, 0.4);
+      }
+      .btn-danger:hover:not(:disabled) {
+        box-shadow: 0 10px 28px rgba(239, 68, 68, 0.6);
+      }
+      .btn-lg {
+        padding: 15px 24px;
+        font-size: 1rem;
+        width: 100%;
+        border-radius: 14px;
+      }
+
+      .icon-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        flex: none;
+        background: var(--card);
+        border: 1px solid var(--card-brd);
+        color: var(--txt);
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        transition:
+          background 0.2s,
+          transform 0.12s;
+        backdrop-filter: blur(8px);
+      }
+      .icon-btn:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+      .icon-btn:active {
+        transform: scale(0.93);
+      }
+      .icon-btn.muted {
+        opacity: 0.45;
+      }
+
+      .game-area {
+        display: grid;
+        grid-template-columns: clamp(110px, 17vw, 180px) minmax(0, 1fr) clamp(
+            110px,
+            17vw,
+            180px
+          );
+        grid-template-rows: clamp(110px, 17vw, 180px) minmax(0, 1fr) clamp(
+            110px,
+            17vw,
+            180px
+          );
+        grid-template-areas:
+          "red    .      green"
+          ".      board  ."
+          "blue   .      yellow";
+        gap: 12px;
+        max-width: 1000px;
+        margin: 40px auto 0;
+        width: 100%;
+        place-items: center;
+        padding-top: 8px;
+      }
+
+      .board-wrap {
+        grid-area: board;
+        position: relative;
+        width: 100%;
+        max-width: 560px;
+        aspect-ratio: 1;
+      }
+
+      .board {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: repeat(15, 1fr);
+        grid-template-rows: repeat(15, 1fr);
+        background: #fdfcf7;
+        border-radius: 18px;
+        box-shadow:
+          0 0 0 5px #1c2338,
+          0 0 0 8px rgba(255, 255, 255, 0.06),
+          0 22px 50px rgba(0, 0, 0, 0.6);
+        overflow: hidden;
+        isolation: isolate;
+      }
+
+      .cell {
+        border: 1px solid rgba(20, 25, 45, 0.09);
+        background: #fdfcf7;
+        position: relative;
+      }
+
+      .yard {
+        position: relative;
+      }
+      .yard::before {
+        content: "";
+        position: absolute;
+        inset: 9%;
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 14px;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.09);
+      }
+      .yard-red {
+        background: linear-gradient(150deg, var(--red), #b91c1c);
+        grid-area: 1 / 1 / 7 / 7;
+      }
+      .yard-green {
+        background: linear-gradient(150deg, var(--green), #15803d);
+        grid-area: 1 / 10 / 7 / 16;
+      }
+      .yard-yellow {
+        background: linear-gradient(150deg, var(--yellow), #a16207);
+        grid-area: 10 / 10 / 16 / 16;
+      }
+      .yard-blue {
+        background: linear-gradient(150deg, var(--blue), #1d4ed8);
+        grid-area: 10 / 1 / 16 / 7;
+      }
+
+      .home-red {
+        background: linear-gradient(135deg, var(--red-l), var(--red));
+      }
+      .home-green {
+        background: linear-gradient(135deg, var(--green-l), var(--green));
+      }
+      .home-yellow {
+        background: linear-gradient(135deg, var(--yellow-l), var(--yellow));
+      }
+      .home-blue {
+        background: linear-gradient(135deg, var(--blue-l), var(--blue));
+      }
+
+      .start-red {
+        background: var(--red);
+        box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+      }
+      .start-green {
+        background: var(--green);
+        box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+      }
+      .start-yellow {
+        background: var(--yellow);
+        box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+      }
+      .start-blue {
+        background: var(--blue);
+        box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+      }
+
+      .star::after {
+        content: "★";
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: clamp(6px, 1.4vw, 12px);
+        color: rgba(30, 35, 60, 0.42);
+        pointer-events: none;
+      }
+
+      .center {
+        grid-area: 7 / 7 / 10 / 10;
+        position: relative;
+        background: #fdfcf7;
+        display: grid;
+        place-items: center;
+      }
+      .center .tri {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .center .tri-red {
+        clip-path: polygon(0 0, 50% 50%, 0 100%);
+        background: linear-gradient(90deg, var(--red), #f87171);
+      }
+      .center .tri-green {
+        clip-path: polygon(0 0, 100% 0, 50% 50%);
+        background: linear-gradient(180deg, var(--green), #4ade80);
+      }
+      .center .tri-yellow {
+        clip-path: polygon(100% 0, 100% 100%, 50% 50%);
+        background: linear-gradient(270deg, var(--yellow), #facc15);
+      }
+      .center .tri-blue {
+        clip-path: polygon(0 100%, 100% 100%, 50% 50%);
+        background: linear-gradient(0deg, var(--blue), #60a5fa);
+      }
+      .center .crown {
+        position: relative;
+        z-index: 2;
+        font-size: clamp(10px, 1.9vw, 18px);
+        filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+        animation: crownPulse 3s ease-in-out infinite;
+      }
+      @keyframes crownPulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.9;
+        }
+        50% {
+          transform: scale(1.14);
+          opacity: 1;
+        }
+      }
+
+      .token-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      .token {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: auto;
+        cursor: default;
+        transition:
+          left 0.13s cubic-bezier(0.34, 1.4, 0.64, 1),
+          top 0.13s cubic-bezier(0.34, 1.4, 0.64, 1),
+          width 0.18s ease,
+          height 0.18s ease,
+          box-shadow 0.2s ease,
+          transform 0.15s ease;
+        will-change: left, top;
+        border: 2px solid rgba(255, 255, 255, 0.92);
+        box-shadow:
+          0 3px 7px rgba(0, 0, 0, 0.45),
+          inset 0 -3px 6px rgba(0, 0, 0, 0.28),
+          inset 0 3px 5px rgba(255, 255, 255, 0.4);
+        z-index: 5;
+      }
+      .token::after {
+        content: "";
+        position: absolute;
+        inset: 24%;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.34);
+      }
+      .token.red {
+        background: radial-gradient(
+          circle at 32% 28%,
+          #fca5a5,
+          var(--red) 62%,
+          #991b1b
+        );
+      }
+      .token.green {
+        background: radial-gradient(
+          circle at 32% 28%,
+          #86efac,
+          var(--green) 62%,
+          #166534
+        );
+      }
+      .token.yellow {
+        background: radial-gradient(
+          circle at 32% 28%,
+          #fef08a,
+          var(--yellow) 62%,
+          #854d0e
+        );
+      }
+      .token.blue {
+        background: radial-gradient(
+          circle at 32% 28%,
+          #93c5fd,
+          var(--blue) 62%,
+          #1e40af
+        );
+      }
+
+      .token.movable {
+        cursor: pointer;
+        z-index: 9;
+        animation: tokenPop 1s ease-in-out infinite;
+        box-shadow:
+          0 0 0 3px #fff,
+          0 0 16px 4px rgba(255, 255, 255, 0.85),
+          0 4px 10px rgba(0, 0, 0, 0.5);
+      }
+      @keyframes tokenPop {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.16);
+        }
+      }
+      .token.movable:hover {
+        transform: scale(1.22);
+      }
+      .token.moving {
+        z-index: 20;
+      }
+
+      .dice-slot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 10px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: all 0.3s ease;
+        width: 100%;
+        max-width: 180px;
+        user-select: none;
+        backdrop-filter: blur(10px);
+        position: relative;
+      }
+
+      .dice-slot.slot-red {
+        --player-color: #ef4444;
+      }
+      .dice-slot.slot-green {
+        --player-color: #22c55e;
+      }
+      .dice-slot.slot-yellow {
+        --player-color: #eab308;
+      }
+      .dice-slot.slot-blue {
+        --player-color: #3b82f6;
+      }
+
+      .slot-name {
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--player-color);
+        text-shadow: 0 0 12px
+          color-mix(in srgb, var(--player-color) 60%, transparent);
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .slot-name .slot-crown {
+        font-size: 0.85em;
+        filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.7));
+      }
+
+      .dice-slot .dice {
+        width: 76px;
+        height: 76px;
+        border-radius: 16px;
+        background: linear-gradient(145deg, #ffffff, #d5dced);
+        box-shadow:
+          0 10px 22px rgba(0, 0, 0, 0.5),
+          inset 0 -4px 0 rgba(0, 0, 0, 0.13),
+          inset 0 4px 7px rgba(255, 255, 255, 0.9);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        padding: 9px;
+        gap: 3px;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.25s ease,
+          opacity 0.25s;
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      .dice-slot .dice .pip {
+        border-radius: 50%;
+        background: #232a44;
+        opacity: 0;
+        transition: opacity 0.08s;
+        box-shadow: inset 0 -1px 1px rgba(255, 255, 255, 0.28);
+      }
+      .dice-slot .dice .pip.on {
+        opacity: 1;
+      }
+
+      .dice-slot.active {
+        background: rgba(255, 255, 255, 0.09);
+        border-color: color-mix(in srgb, var(--player-color) 55%, transparent);
+        box-shadow:
+          0 0 0 1px color-mix(in srgb, var(--player-color) 35%, transparent),
+          0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+
+      .dice-slot.active .dice {
+        opacity: 1;
+        cursor: pointer;
+        animation: diceGlow 1.7s ease-in-out infinite;
+      }
+
+      @keyframes diceGlow {
+        0%,
+        100% {
+          box-shadow:
+            0 10px 22px rgba(0, 0, 0, 0.5),
+            inset 0 -4px 0 rgba(0, 0, 0, 0.13),
+            inset 0 4px 7px rgba(255, 255, 255, 0.9),
+            0 0 0 0 color-mix(in srgb, var(--player-color) 0%, transparent);
+        }
+        50% {
+          box-shadow:
+            0 10px 22px rgba(0, 0, 0, 0.5),
+            inset 0 -4px 0 rgba(0, 0, 0, 0.13),
+            inset 0 4px 7px rgba(255, 255, 255, 0.9),
+            0 0 26px 8px
+              color-mix(in srgb, var(--player-color) 70%, transparent);
+        }
+      }
+
+      .dice-slot.active .dice:hover {
+        transform: scale(1.07);
+      }
+      .dice.rolling {
+        animation: diceShake 0.45s linear infinite !important;
+      }
+
+      @keyframes diceShake {
+        0% {
+          transform: rotate(0deg) scale(1);
+        }
+        25% {
+          transform: rotate(-16deg) scale(1.09);
+        }
+        50% {
+          transform: rotate(14deg) scale(0.95);
+        }
+        75% {
+          transform: rotate(-9deg) scale(1.06);
+        }
+        100% {
+          transform: rotate(0deg) scale(1);
+        }
+      }
+
+      .dice-slot.paired::before {
+        content: "🤝";
+        position: absolute;
+        top: 5px;
+        right: 7px;
+        font-size: 0.75rem;
+        opacity: 0.55;
+      }
+
+      /* Finished player indicator */
+      .dice-slot.finished .dice {
+        opacity: 0.18 !important;
+        cursor: not-allowed !important;
+        animation: none !important;
+      }
+      .dice-slot.finished .slot-name {
+        opacity: 0.55;
+      }
+      .dice-slot.finished .slot-name .done-check {
+        color: #22c55e;
+        font-size: 0.85em;
+        filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.7));
+      }
+      .dice-slot.finished::after {
+        content: "✓ DONE";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-8deg);
+        font-size: 0.58rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        color: #22c55e;
+        text-shadow:
+          0 0 8px rgba(34, 197, 94, 0.9),
+          0 1px 2px rgba(0, 0, 0, 0.6);
+        pointer-events: none;
+        opacity: 0.85;
+      }
+
+      .slot-progress {
+        display: flex;
+        gap: 5px;
+      }
+      .pc-pip {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.16);
+        transition:
+          background 0.3s,
+          box-shadow 0.3s;
+      }
+      .pc-pip.done {
+        background: var(--player-color);
+        box-shadow: 0 0 7px var(--player-color);
+      }
+
+      .toast {
+        position: absolute;
+        left: 50%;
+        bottom: 12px;
+        transform: translate(-50%, 20px);
+        background: rgba(14, 18, 34, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.17);
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 10px 18px;
+        border-radius: 999px;
+        box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.28s,
+          transform 0.28s;
+        z-index: 60;
+        white-space: nowrap;
+        backdrop-filter: blur(10px);
+        max-width: 92%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(5, 8, 18, 0.82);
+        backdrop-filter: blur(9px);
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+        overflow-y: auto;
+      }
+      .modal.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .modal-card {
+        width: 100%;
+        max-width: 430px;
+        background: linear-gradient(160deg, #1b223c, #141a2e);
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 20px;
+        padding: 22px 20px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+        transform: translateY(14px) scale(0.97);
+        transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+        max-height: 92vh;
+        overflow-y: auto;
+      }
+      .modal.open .modal-card {
+        transform: translateY(0) scale(1);
+      }
+
+      .modal-head {
+        margin-bottom: 16px;
+      }
+      .modal-head h2 {
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .modal-head .sub {
+        font-size: 0.78rem;
+        color: var(--txt-dim);
+        margin-top: 4px;
+      }
+
+      .field-label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--txt-dim);
+        margin: 16px 0 8px;
+      }
+
+      .segmented {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 5px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+      }
+      .segmented button {
+        font-family: inherit;
+        font-size: 0.92rem;
+        font-weight: 800;
+        padding: 10px 0;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--txt-dim);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .segmented button:hover {
+        color: var(--txt);
+      }
+      .segmented button.active {
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        color: #fff;
+        box-shadow: 0 5px 16px rgba(139, 92, 246, 0.45);
+      }
+      .segmented button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .toggles {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .toggle {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.045);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        cursor: pointer;
+        transition:
+          background 0.2s,
+          opacity 0.2s;
+      }
+      .toggle:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .toggle.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+      .toggle input {
+        display: none;
+      }
+      .switch {
+        width: 40px;
+        height: 22px;
+        border-radius: 999px;
+        flex: none;
+        background: rgba(255, 255, 255, 0.16);
+        position: relative;
+        transition: background 0.25s;
+      }
+      .switch::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+      }
+      .toggle input:checked + .switch {
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+      }
+      .toggle input:checked + .switch::after {
+        transform: translateX(18px);
+      }
+      .toggle-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .toggle-text strong {
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+      .toggle-text small {
+        font-size: 0.66rem;
+        color: var(--txt-dim);
+        line-height: 1.35;
+      }
+
+      .modal-card .btn-lg {
+        margin-top: 20px;
+      }
+
+      .confirm-card {
+        max-width: 380px;
+        text-align: center;
+        padding: 26px 22px;
+      }
+      .confirm-icon {
+        font-size: 2.8rem;
+        margin-bottom: 8px;
+        animation: confirmPulse 1.6s ease-in-out infinite;
+      }
+      @keyframes confirmPulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.08);
+        }
+      }
+      .confirm-card h2 {
+        font-size: 1.25rem;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+      .confirm-card p {
+        font-size: 0.85rem;
+        color: var(--txt-dim);
+        line-height: 1.55;
+        margin-bottom: 20px;
+      }
+      .confirm-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .confirm-actions .btn {
+        padding: 13px 16px;
+        font-size: 0.92rem;
+      }
+
+      .rules-body {
+        font-size: 0.82rem;
+        line-height: 1.6;
+        color: #c4cde4;
+      }
+      .rules-body h3 {
+        font-size: 0.9rem;
+        font-weight: 800;
+        margin: 16px 0 6px;
+        color: #fff;
+      }
+      .rules-body h3:first-child {
+        margin-top: 0;
+      }
+      .rules-body p {
+        margin-bottom: 8px;
+      }
+      .rules-body ul {
+        padding-left: 18px;
+        margin-bottom: 8px;
+      }
+      .rules-body li {
+        margin-bottom: 3px;
+      }
+      .rules-body strong {
+        color: #fff;
+      }
+      .rules-body kbd {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-bottom-width: 2px;
+        border-radius: 5px;
+        padding: 1px 5px;
+        font-size: 0.68rem;
+        font-family: inherit;
+        font-weight: 700;
+        color: #fff;
+      }
+
+      .win-card {
+        text-align: center;
+        max-width: 380px;
+      }
+      .trophy {
+        font-size: 3.4rem;
+        margin-bottom: 6px;
+        animation: trophyBounce 1.4s ease-in-out infinite;
+        filter: drop-shadow(0 8px 18px rgba(250, 204, 21, 0.45));
+      }
+      @keyframes trophyBounce {
+        0%,
+        100% {
+          transform: translateY(0) rotate(-4deg);
+        }
+        50% {
+          transform: translateY(-10px) rotate(4deg);
+        }
+      }
+      .win-card h2 {
+        font-size: 1.5rem;
+        font-weight: 800;
+      }
+      .win-card .sub {
+        color: var(--txt-dim);
+        font-size: 0.82rem;
+        margin-top: 6px;
+      }
+      .win-actions {
+        margin-top: 18px;
+      }
+
+      .confetti {
+        position: fixed;
+        top: -14px;
+        width: 9px;
+        height: 15px;
+        z-index: 200;
+        pointer-events: none;
+        border-radius: 2px;
+        animation: fall linear forwards;
+      }
+      @keyframes fall {
+        to {
+          transform: translateY(105vh) rotate(760deg);
+          opacity: 0.15;
+        }
+      }
+
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.16);
+        border-radius: 99px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.28);
+      }
+
+      @media (max-width: 900px) {
+        .game-area {
+          grid-template-columns: clamp(96px, 15vw, 150px) minmax(0, 1fr) clamp(
+              96px,
+              15vw,
+              150px
+            );
+          grid-template-rows: clamp(96px, 15vw, 150px) minmax(0, 1fr) clamp(
+              96px,
+              15vw,
+              150px
+            );
+          gap: 10px;
+          margin-top: 30px;
+        }
+        .dice-slot {
+          padding: 10px 8px;
+          gap: 6px;
+          max-width: 150px;
+        }
+        .dice-slot .dice {
+          width: 62px;
+          height: 62px;
+          padding: 7px;
+          gap: 2.5px;
+        }
+        .slot-name {
+          font-size: 0.72rem;
+          letter-spacing: 0.09em;
+        }
+        .pc-pip {
+          width: 7px;
+          height: 7px;
+        }
+      }
+
+      @media (max-width: 620px) {
+        body {
+          padding: 8px;
+        }
+        .app {
+          gap: 10px;
+        }
+        .topbar {
+          gap: 8px;
+        }
+        .brand h1 {
+          font-size: 1.05rem;
+        }
+        .brand-die {
+          width: 30px;
+          height: 30px;
+          padding: 5px;
+          gap: 1.5px;
+          border-radius: 8px;
+        }
+        .icon-btn {
+          width: 34px;
+          height: 34px;
+          font-size: 0.95rem;
+          border-radius: 9px;
+        }
+        .btn-ghost {
+          padding: 8px 11px;
+          font-size: 0.78rem;
+          border-radius: 9px;
+        }
+        .rig-badge {
+          font-size: 0.62rem;
+          padding: 5px 9px;
+        }
+
+        .game-area {
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto auto auto;
+          grid-template-areas:
+            "red    green"
+            "board  board"
+            "blue   yellow";
+          gap: 8px;
+          max-width: 100%;
+          margin-top: 20px;
+        }
+        .board-wrap {
+          width: 100%;
+          max-width: 100%;
+        }
+
+        .dice-slot {
+          max-width: none;
+          flex-direction: row;
+          padding: 8px 11px;
+          gap: 9px;
+          justify-content: flex-start;
+          border-radius: 12px;
+        }
+        .dice-slot .dice {
+          width: 48px;
+          height: 48px;
+          padding: 5px;
+          gap: 2px;
+          border-radius: 11px;
+          flex: none;
+        }
+        .slot-name {
+          font-size: 0.72rem;
+          letter-spacing: 0.06em;
+          min-width: 42px;
+        }
+        .slot-progress {
+          margin-left: auto;
+        }
+        .pc-pip {
+          width: 6px;
+          height: 6px;
+        }
+        .dice-slot.paired::before {
+          top: 3px;
+          right: 5px;
+          font-size: 0.65rem;
+        }
+        .dice-slot.finished::after {
+          font-size: 0.5rem;
+        }
+        .toast {
+          font-size: 0.74rem;
+          padding: 8px 14px;
+          bottom: 8px;
+        }
+      }
+
+      @media (max-width: 400px) {
+        .brand h1 {
+          font-size: 0.92rem;
+        }
+        .brand-die {
+          width: 26px;
+          height: 26px;
+          padding: 4px;
+        }
+        .icon-btn {
+          width: 30px;
+          height: 30px;
+          font-size: 0.85rem;
+        }
+        .btn-ghost {
+          padding: 7px 9px;
+          font-size: 0.72rem;
+        }
+        .rig-badge {
+          font-size: 0.55rem;
+          padding: 4px 7px;
+        }
+        .dice-slot {
+          padding: 7px 9px;
+          gap: 7px;
+        }
+        .dice-slot .dice {
+          width: 40px;
+          height: 40px;
+          padding: 4px;
+          gap: 1.5px;
+        }
+        .slot-name {
+          font-size: 0.64rem;
+          min-width: 36px;
+        }
+        .pc-pip {
+          width: 5px;
+          height: 5px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-die" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </span>
+          <h1>Ludo <span>Royale</span></h1>
+        </div>
+        <div class="rig-badge" id="rigBadge">👑 Red + Yellow favourites</div>
+        <div class="topbar-actions">
+          <button
+            id="soundBtn"
+            class="icon-btn"
+            title="Toggle sound"
+            aria-label="Toggle sound"
+          >
+            🔊
+          </button>
+          <button
+            id="rulesBtn"
+            class="icon-btn"
+            title="How to play"
+            aria-label="How to play"
+          >
+            ?
+          </button>
+          <button id="newGameBtn" class="btn btn-ghost">New Game</button>
+        </div>
+      </header>
+
+      <main class="game-area" id="gameArea">
+        <div class="board-wrap">
+          <div id="board" class="board" aria-label="Ludo board"></div>
+          <div id="toast" class="toast"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ============================================================
+     🔊 CUSTOM DICE SOUND SOURCES
+     Add src="..." to any audio tag to use your own sound.
+     Keys: -roll (spinning) · -land (stops) · -turn (turn starts)
+     ============================================================ -->
+    <audio id="aud-red-roll" preload="auto"></audio>
+    <audio id="aud-red-land" preload="auto"></audio>
+    <audio id="aud-red-turn" preload="auto"></audio>
+
+    <audio id="aud-green-roll" preload="auto"></audio>
+    <audio id="aud-green-land" preload="auto"></audio>
+    <audio id="aud-green-turn" preload="auto"></audio>
+
+    <audio id="aud-yellow-roll" preload="auto"></audio>
+    <audio id="aud-yellow-land" preload="auto"></audio>
+    <audio id="aud-yellow-turn" preload="auto"></audio>
+
+    <audio id="aud-blue-roll" preload="auto"></audio>
+    <audio id="aud-blue-land" preload="auto"></audio>
+    <audio id="aud-blue-turn" preload="auto"></audio>
+
+    <!-- ============ SETUP MODAL ============ -->
+    <div id="setupModal" class="modal open">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2>Ludo Royale</h2>
+          <p class="sub" id="setupSub">
+            Local multiplayer · Red + Yellow favourites — but Green + Blue fight
+            hard!
+          </p>
+        </div>
+
+        <label class="field-label">Number of players</label>
+        <div class="segmented" id="playerCount">
+          <button data-count="2" class="active">2</button>
+          <button data-count="3">3</button>
+          <button data-count="4">4</button>
+        </div>
+
+        <label class="field-label">House rules</label>
+        <div class="toggles">
+          <label class="toggle" id="togglePairs">
+            <input type="checkbox" id="optPairs" checked />
+            <span class="switch"></span>
+            <span class="toggle-text"
+              ><strong>Diagonal Pairs 🤝</strong
+              ><small
+                >Red + Yellow vs Green + Blue (locked by rigged mode)</small
+              ></span
+            >
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="optSafe" checked />
+            <span class="switch"></span>
+            <span class="toggle-text"
+              ><strong>Star Safes</strong
+              ><small
+                >Star &amp; start squares protect tokens (Red + Yellow bypass
+                this)</small
+              ></span
+            >
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="optBlock" />
+            <span class="switch"></span>
+            <span class="toggle-text"
+              ><strong>Blockades</strong
+              ><small
+                >Two tokens of the same colour block opponents from
+                passing</small
+              ></span
+            >
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="optQuick" />
+            <span class="switch"></span>
+            <span class="toggle-text"
+              ><strong>Quick Start</strong
+              ><small
+                >Everyone begins with one token already on the board</small
+              ></span
+            >
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="optSixes" checked />
+            <span class="switch"></span>
+            <span class="toggle-text"
+              ><strong>Three Sixes</strong
+              ><small>Rolling three 6s in a row forfeits your turn</small></span
+            >
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-lg" id="startBtn">Start Game</button>
+      </div>
+    </div>
+
+    <!-- ============ RULES MODAL ============ -->
+    <div id="rulesModal" class="modal">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2>How to Play</h2>
+          <p class="sub">Classic Ludo with a few extra twists</p>
+        </div>
+        <div class="rules-body">
+          <h3>🎯 Goal</h3>
+          <p>
+            Bring all <strong>4 of your tokens</strong> from your yard, around
+            the board, and into the centre home. First team to finish wins.
+          </p>
+
+          <h3>👑 Favourites Mode</h3>
+          <ul>
+            <li>
+              Red and Yellow are <strong>always teammates</strong> — and always
+              favourites to win.
+            </li>
+            <li>
+              They roll <strong>smart dice</strong> — 6 when needed, capture
+              rolls when available, home rolls when possible.
+            </li>
+            <li>
+              Their tokens <strong>can be captured</strong> — Green + Blue will
+              absolutely take their shots.
+            </li>
+            <li>
+              Green + Blue play an <strong>adaptive AI</strong>: they catch up
+              when behind, get aggressive when far behind, and dial back only
+              when they threaten to overtake.
+            </li>
+          </ul>
+
+          <h3>🤝 Pair Rules</h3>
+          <ul>
+            <li>
+              Each pair shares the turn — both dice glow when it's your team's
+              turn.
+            </li>
+            <li>
+              <strong
+                >Once a player gets all 4 tokens home, they stop
+                rolling.</strong
+              >
+              Their dice greys out with a ✓ DONE badge, and only their partner
+              continues rolling for the team.
+            </li>
+            <li>
+              Example: Red finishes all 4 → Yellow carries the team solo. When
+              Yellow also finishes, the team wins.
+            </li>
+          </ul>
+
+          <h3>🎲 Rolling</h3>
+          <ul>
+            <li>
+              Tap <strong>your dice</strong> — the glowing one in your corner —
+              to roll.
+            </li>
+            <li>
+              Roll a <strong>6</strong> to release a token from your yard.
+            </li>
+            <li>Rolling a <strong>6 grants an extra turn</strong>.</li>
+          </ul>
+
+          <h3>⚔️ Capturing</h3>
+          <ul>
+            <li>
+              Land exactly on an opponent's token to send it
+              <strong>back to its yard</strong>.
+            </li>
+            <li>Capturing earns you an <strong>extra turn</strong>.</li>
+            <li>Reaching home also grants another roll.</li>
+          </ul>
+
+          <h3>⌨️ Controls</h3>
+          <p>
+            <kbd>Space</kbd> rolls the active dice · click a glowing token to
+            move it.
+          </p>
+        </div>
+        <button class="btn btn-primary btn-lg" id="closeRules">Got it</button>
+      </div>
+    </div>
+
+    <!-- ============ CONFIRM NEW GAME MODAL ============ -->
+    <div id="confirmModal" class="modal">
+      <div class="modal-card confirm-card">
+        <div class="confirm-icon">⚠️</div>
+        <h2>Start a new game?</h2>
+        <p>
+          Your current match will be lost. Are you sure you want to start over?
+        </p>
+        <div class="confirm-actions">
+          <button class="btn btn-ghost" id="confirmCancel">Cancel</button>
+          <button class="btn btn-danger" id="confirmYes">Yes, Start New</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ WIN MODAL ============ -->
+    <div id="winModal" class="modal">
+      <div class="modal-card win-card">
+        <div class="trophy">🏆</div>
+        <h2 id="winTitle">Red &amp; Yellow win!</h2>
+        <p class="sub" id="winSub">Both colours made it home.</p>
+        <div class="win-actions">
+          <button class="btn btn-primary btn-lg" id="playAgain">
+            Play Again
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ============================================================
+   👑 FAVOURITES MODE
+   ============================================================
+   Red + Yellow always win, but Green + Blue fight hard.
+   Set to false to disable entirely.
+   ============================================================ */
+      const RIG_RED_YELLOW = true;
+
+      /* ============================================================
+   1. BOARD GEOMETRY
+   ============================================================ */
+      const TRACK = [
+        [6, 1],
+        [6, 2],
+        [6, 3],
+        [6, 4],
+        [6, 5],
+        [5, 6],
+        [4, 6],
+        [3, 6],
+        [2, 6],
+        [1, 6],
+        [0, 6],
+        [0, 7],
+        [0, 8],
+        [1, 8],
+        [2, 8],
+        [3, 8],
+        [4, 8],
+        [5, 8],
+        [6, 9],
+        [6, 10],
+        [6, 11],
+        [6, 12],
+        [6, 13],
+        [6, 14],
+        [7, 14],
+        [8, 14],
+        [8, 13],
+        [8, 12],
+        [8, 11],
+        [8, 10],
+        [8, 9],
+        [9, 8],
+        [10, 8],
+        [11, 8],
+        [12, 8],
+        [13, 8],
+        [14, 8],
+        [14, 7],
+        [14, 6],
+        [13, 6],
+        [12, 6],
+        [11, 6],
+        [10, 6],
+        [9, 6],
+        [8, 5],
+        [8, 4],
+        [8, 3],
+        [8, 2],
+        [8, 1],
+        [8, 0],
+        [7, 0],
+        [6, 0],
+      ];
+
+      const SAFE_SET = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
+
+      const PLAYERS_DEF = [
+        {
+          id: "red",
+          name: "Red",
+          css: "red",
+          color: "#ef4444",
+          start: 0,
+          yard: [
+            [1.5, 1.5],
+            [1.5, 3.5],
+            [3.5, 1.5],
+            [3.5, 3.5],
+          ],
+          home: [
+            [7, 1],
+            [7, 2],
+            [7, 3],
+            [7, 4],
+            [7, 5],
+          ],
+          homeCluster: [
+            [6.45, 6.28],
+            [7.05, 6.28],
+            [7.65, 6.28],
+            [8.25, 6.28],
+          ],
+        },
+        {
+          id: "green",
+          name: "Green",
+          css: "green",
+          color: "#22c55e",
+          start: 13,
+          yard: [
+            [1.5, 10.5],
+            [1.5, 12.5],
+            [3.5, 10.5],
+            [3.5, 12.5],
+          ],
+          home: [
+            [1, 7],
+            [2, 7],
+            [3, 7],
+            [4, 7],
+            [5, 7],
+          ],
+          homeCluster: [
+            [6.28, 6.45],
+            [6.28, 7.05],
+            [6.28, 7.65],
+            [6.28, 8.25],
+          ],
+        },
+        {
+          id: "yellow",
+          name: "Yellow",
+          css: "yellow",
+          color: "#eab308",
+          start: 26,
+          yard: [
+            [10.5, 10.5],
+            [10.5, 12.5],
+            [12.5, 10.5],
+            [12.5, 12.5],
+          ],
+          home: [
+            [7, 13],
+            [7, 12],
+            [7, 11],
+            [7, 10],
+            [7, 9],
+          ],
+          homeCluster: [
+            [6.45, 8.02],
+            [7.05, 8.02],
+            [7.65, 8.02],
+            [8.25, 8.02],
+          ],
+        },
+        {
+          id: "blue",
+          name: "Blue",
+          css: "blue",
+          color: "#3b82f6",
+          start: 39,
+          yard: [
+            [10.5, 1.5],
+            [10.5, 3.5],
+            [12.5, 1.5],
+            [12.5, 3.5],
+          ],
+          home: [
+            [13, 7],
+            [12, 7],
+            [11, 7],
+            [10, 7],
+            [9, 7],
+          ],
+          homeCluster: [
+            [8.02, 6.45],
+            [8.02, 7.05],
+            [8.02, 7.65],
+            [8.02, 8.25],
+          ],
+        },
+      ];
+
+      function buildTeams(count, pairs) {
+        if (RIG_RED_YELLOW)
+          return [
+            [0, 2],
+            [1, 3],
+          ];
+        if (count === 2 && pairs)
+          return [
+            [0, 2],
+            [1, 3],
+          ];
+        if (count === 2) return [[0], [2]];
+        if (count === 3) return [[0], [1], [2]];
+        return [[0], [1], [2], [3]];
+      }
+
+      /* ============================================================
+   2. STATE
+   ============================================================ */
+      const state = {
+        players: [null, null, null, null],
+        teams: [
+          [0, 2],
+          [1, 3],
+        ],
+        current: 0,
+        dice: null,
+        rolling: false,
+        awaitingMove: false,
+        moves: [],
+        sixCount: 0,
+        gameOver: false,
+        started: false,
+        opts: {
+          safe: true,
+          block: false,
+          quick: false,
+          sixes: true,
+          pairs: true,
+        },
+        playerCount: 2,
+      };
+
+      function currentTeam() {
+        return state.teams[state.current];
+      }
+      function isRiggedTeam(team) {
+        if (!RIG_RED_YELLOW) return false;
+        return team.includes(0) && team.includes(2);
+      }
+      function isRiggedPlayer(pi) {
+        return RIG_RED_YELLOW && (pi === 0 || pi === 2);
+      }
+
+      /* Has this player brought all 4 tokens home? */
+      function isPlayerFinished(pi) {
+        const p = state.players[pi];
+        if (!p) return false;
+        return p.tokens.every((t) => t === 56);
+      }
+
+      /* Active members of the current team — excludes finished players.
+   Fallback to full team if everyone is done (game over edge case). */
+      function activeMembers() {
+        const team = currentTeam();
+        const active = team.filter((pi) => !isPlayerFinished(pi));
+        return active.length > 0 ? active : team;
+      }
+
+      let tokenEls = [];
+      let diceSlots = [];
+      let soundOn = true;
+
+      /* ============================================================
+   3. AUDIO
+   ============================================================ */
+      let audioCtx = null;
+      function ac() {
+        if (!audioCtx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) return null;
+          audioCtx = new Ctx();
+        }
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        return audioCtx;
+      }
+
+      function tone(
+        freq,
+        dur,
+        type = "sine",
+        vol = 0.12,
+        delay = 0,
+        freqEnd = null,
+      ) {
+        if (!soundOn) return;
+        const ctx = ac();
+        if (!ctx) return;
+        const t0 = ctx.currentTime + delay;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t0);
+        if (freqEnd)
+          osc.frequency.exponentialRampToValueAtTime(freqEnd, t0 + dur);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.linearRampToValueAtTime(vol, t0 + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + dur + 0.03);
+      }
+
+      function playCustomSound(pi, key) {
+        const def = PLAYERS_DEF[pi];
+        if (!def) return false;
+        const el = document.getElementById(`aud-${def.id}-${key}`);
+        if (!el || !el.getAttribute("src")) return false;
+        try {
+          el.currentTime = 0;
+          el.volume = soundOn ? 1 : 0;
+          const p = el.play();
+          if (p && p.catch) p.catch(() => {});
+        } catch (e) {}
+        return true;
+      }
+
+      const ROLL_PROFILE = {
+        red: {
+          base: 110,
+          range: 80,
+          type: "sawtooth",
+          vol: 0.075,
+          ticks: 14,
+          gap: 0.046,
+        },
+        green: {
+          base: 180,
+          range: 100,
+          type: "square",
+          vol: 0.05,
+          ticks: 14,
+          gap: 0.046,
+        },
+        yellow: {
+          base: 250,
+          range: 150,
+          type: "triangle",
+          vol: 0.085,
+          ticks: 16,
+          gap: 0.04,
+        },
+        blue: {
+          base: 150,
+          range: 70,
+          type: "sine",
+          vol: 0.09,
+          ticks: 12,
+          gap: 0.052,
+        },
+      };
+      const LAND_PROFILE = {
+        red: { base: 165, type: "sawtooth" },
+        green: { base: 247, type: "square" },
+        yellow: { base: 330, type: "triangle" },
+        blue: { base: 220, type: "sine" },
+      };
+      const TURN_PROFILE = {
+        red: { base: 392, type: "sine" },
+        green: { base: 523, type: "sine" },
+        yellow: { base: 659, type: "sine" },
+        blue: { base: 440, type: "sine" },
+      };
+
+      function playRollSoundFor(pi) {
+        if (playCustomSound(pi, "roll")) return;
+        const p = ROLL_PROFILE[PLAYERS_DEF[pi].id];
+        if (!p) return;
+        for (let i = 0; i < p.ticks; i++) {
+          const freq = p.base + Math.random() * p.range;
+          tone(freq, 0.045, p.type, p.vol, i * p.gap);
+        }
+      }
+      function playLandSoundFor(pi) {
+        if (playCustomSound(pi, "land")) return;
+        const p = LAND_PROFILE[PLAYERS_DEF[pi].id];
+        if (!p) return;
+        tone(p.base, 0.13, p.type, 0.14, 0);
+        tone(p.base * 1.5, 0.15, p.type, 0.1, 0.07);
+      }
+      function playTurnStartSoundFor(pi) {
+        if (playCustomSound(pi, "turn")) return;
+        const p = TURN_PROFILE[PLAYERS_DEF[pi].id];
+        if (!p) return;
+        tone(p.base, 0.1, p.type, 0.09, 0);
+        tone(p.base * 1.26, 0.13, p.type, 0.08, 0.09);
+      }
+
+      const SFX = {
+        step() {
+          tone(680, 0.07, "triangle", 0.09);
+        },
+        capture() {
+          tone(520, 0.11, "sawtooth", 0.11, 0);
+          tone(360, 0.13, "sawtooth", 0.11, 0.09);
+          tone(210, 0.22, "sawtooth", 0.1, 0.19);
+        },
+        home() {
+          [523, 659, 784, 1047].forEach((f, i) =>
+            tone(f, 0.16, "sine", 0.11, i * 0.085),
+          );
+        },
+        error() {
+          tone(180, 0.2, "sawtooth", 0.09);
+        },
+        win() {
+          [523, 659, 784, 1047, 1319, 1047, 1319, 1568].forEach((f, i) =>
+            tone(f, 0.24, "triangle", 0.13, i * 0.13),
+          );
+        },
+      };
+
+      /* ============================================================
+   4. DOM
+   ============================================================ */
+      const $ = (id) => document.getElementById(id);
+      const boardEl = $("board");
+      const toastEl = $("toast");
+      const gameArea = $("gameArea");
+      const setupModal = $("setupModal");
+      const rulesModal = $("rulesModal");
+      const winModal = $("winModal");
+      const confirmModal = $("confirmModal");
+
+      /* ============================================================
+   5. BOARD BUILD
+   ============================================================ */
+      let tokenLayer;
+
+      function buildBoard() {
+        boardEl.innerHTML = "";
+        const frag = document.createDocumentFragment();
+
+        const yards = [
+          ["yard-red", 1, 1, 7, 7],
+          ["yard-green", 1, 10, 7, 16],
+          ["yard-yellow", 10, 10, 16, 16],
+          ["yard-blue", 10, 1, 16, 7],
+        ];
+        yards.forEach(([cls, r1, c1, r2, c2]) => {
+          const d = document.createElement("div");
+          d.className = "yard " + cls;
+          d.style.gridArea = `${r1} / ${c1} / ${r2} / ${c2}`;
+          frag.appendChild(d);
+        });
+
+        const inYard = (r, c) =>
+          (r < 6 && c < 6) ||
+          (r < 6 && c > 8) ||
+          (r > 8 && c > 8) ||
+          (r > 8 && c < 6);
+        const inCenter = (r, c) => r >= 6 && r <= 8 && c >= 6 && c <= 8;
+
+        const startMap = {
+          "6,1": "start-red",
+          "1,8": "start-green",
+          "8,13": "start-yellow",
+          "13,6": "start-blue",
+        };
+
+        for (let r = 0; r < 15; r++) {
+          for (let c = 0; c < 15; c++) {
+            if (inYard(r, c) || inCenter(r, c)) continue;
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.style.gridRow = r + 1;
+            cell.style.gridColumn = c + 1;
+
+            const key = r + "," + c;
+            if (r === 7 && c >= 1 && c <= 5) cell.classList.add("home-red");
+            else if (c === 7 && r >= 1 && r <= 5)
+              cell.classList.add("home-green");
+            else if (r === 7 && c >= 9 && c <= 13)
+              cell.classList.add("home-yellow");
+            else if (c === 7 && r >= 9 && r <= 13)
+              cell.classList.add("home-blue");
+
+            if (startMap[key]) cell.classList.add(startMap[key]);
+
+            const idx = TRACK.findIndex((t) => t[0] === r && t[1] === c);
+            if (idx !== -1 && SAFE_SET.has(idx) && !startMap[key])
+              cell.classList.add("star");
+
+            frag.appendChild(cell);
+          }
+        }
+
+        const centre = document.createElement("div");
+        centre.className = "center";
+        centre.innerHTML = `
+    <div class="tri tri-green"></div>
+    <div class="tri tri-red"></div>
+    <div class="tri tri-yellow"></div>
+    <div class="tri tri-blue"></div>
+    <div class="crown">👑</div>`;
+        frag.appendChild(centre);
+
+        boardEl.appendChild(frag);
+
+        tokenLayer = document.createElement("div");
+        tokenLayer.className = "token-layer";
+        boardEl.appendChild(tokenLayer);
+      }
+
+      /* ============================================================
+   6. HELPERS
+   ============================================================ */
+      function sleep(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+      }
+
+      function coordOf(pi, pos) {
+        const def = PLAYERS_DEF[pi];
+        if (pos < 0) return null;
+        if (pos <= 50) return TRACK[(def.start + pos) % 52];
+        if (pos <= 55) return def.home[pos - 51];
+        return null;
+      }
+
+      function isSafeCell(pi, pos) {
+        if (pos < 0 || pos > 50) return false;
+        return SAFE_SET.has((PLAYERS_DEF[pi].start + pos) % 52);
+      }
+
+      function sameTeam(pi1, pi2) {
+        if (pi1 === pi2) return true;
+        return state.teams.some((t) => t.includes(pi1) && t.includes(pi2));
+      }
+
+      function cellOccupants(row, col, excludePi) {
+        const list = [];
+        for (let pi = 0; pi < 4; pi++) {
+          const p = state.players[pi];
+          if (!p || pi === excludePi) continue;
+          p.tokens.forEach((pos, ti) => {
+            if (pos < 0 || pos > 50) return;
+            const c = coordOf(pi, pos);
+            if (c && c[0] === row && c[1] === col) list.push({ pi, ti });
+          });
+        }
+        return list;
+      }
+
+      function isBlockadeAt(row, col, movingPi) {
+        const occ = cellOccupants(row, col, movingPi);
+        const counts = {};
+        occ.forEach((o) => {
+          counts[o.pi] = (counts[o.pi] || 0) + 1;
+        });
+        return Object.keys(counts).some((k) => {
+          if (counts[k] < 2) return false;
+          const pi = parseInt(k, 10);
+          if (sameTeam(pi, movingPi)) return false;
+          return true;
+        });
+      }
+
+      /* ============================================================
+   7. TOAST
+   ============================================================ */
+      let toastTimer = null;
+      function toast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1900);
+      }
+
+      /* ============================================================
+   8. DICE FACES
+   ============================================================ */
+      const DICE_FACES = {
+        1: [4],
+        2: [0, 8],
+        3: [0, 4, 8],
+        4: [0, 2, 6, 8],
+        5: [0, 2, 4, 6, 8],
+        6: [0, 2, 3, 5, 6, 8],
+      };
+
+      function showDiceFace(dice, v) {
+        const pips = dice.querySelectorAll(".pip");
+        pips.forEach((p, i) =>
+          p.classList.toggle("on", DICE_FACES[v].includes(i)),
+        );
+        dice.dataset.face = v;
+      }
+
+      /* ============================================================
+   9. TOKEN LAYOUT
+   ============================================================ */
+      function tokenLayout() {
+        const out = [];
+        const occupancy = {};
+
+        for (let pi = 0; pi < 4; pi++) {
+          const p = state.players[pi];
+          if (!p) continue;
+          const def = PLAYERS_DEF[pi];
+          p.tokens.forEach((pos, ti) => {
+            let row,
+              col,
+              size = 1;
+            if (pos === -1) {
+              [row, col] = def.yard[ti];
+            } else if (pos === 56) {
+              [row, col] = def.homeCluster[ti];
+              size = 0.72;
+            } else {
+              const c = coordOf(pi, pos);
+              row = c[0];
+              col = c[1];
+              const k = row + "," + col;
+              (occupancy[k] = occupancy[k] || []).push({ pi, ti });
+            }
+            out.push({ pi, ti, row, col, size });
+          });
+        }
+
+        const OFFSETS = [
+          [-0.17, -0.17],
+          [0.17, -0.17],
+          [-0.17, 0.17],
+          [0.17, 0.17],
+        ];
+        Object.values(occupancy).forEach((list) => {
+          if (list.length < 2) return;
+          list.forEach((item, i) => {
+            const o = OFFSETS[i % 4];
+            const t = out.find((x) => x.pi === item.pi && x.ti === item.ti);
+            if (!t) return;
+            t.row += o[0];
+            t.col += o[1];
+            t.size = 0.66;
+          });
+        });
+
+        return out;
+      }
+
+      /* ============================================================
+   10. RENDER
+   ============================================================ */
+      function render() {
+        if (!state.started) return;
+        renderTokens();
+        renderDiceSlots();
+      }
+
+      function renderTokens() {
+        const layout = tokenLayout();
+        const active = new Set(activeMembers());
+
+        layout.forEach(({ pi, ti, row, col, size }) => {
+          const el = tokenEls[pi] && tokenEls[pi][ti];
+          if (!el) return;
+          el.style.left = (col / 15) * 100 + "%";
+          el.style.top = (row / 15) * 100 + "%";
+          el.style.width = (size / 15) * 100 + "%";
+          el.style.height = (size / 15) * 100 + "%";
+
+          const canMove =
+            state.awaitingMove &&
+            active.has(pi) &&
+            state.moves.some((m) => m.pi === pi && m.ti === ti);
+          el.classList.toggle("movable", canMove);
+        });
+      }
+
+      function renderDiceSlots() {
+        const active = new Set(activeMembers());
+        for (let pi = 0; pi < 4; pi++) {
+          const slot = diceSlots[pi];
+          if (!slot) continue;
+
+          const finished = isPlayerFinished(pi);
+          const isActive = state.started && !state.gameOver && active.has(pi);
+
+          slot.classList.toggle("active", isActive);
+          slot.classList.toggle("finished", finished && !state.gameOver);
+
+          const p = state.players[pi];
+          if (!p) continue;
+          const homeCount = p.tokens.filter((t) => t === 56).length;
+          slot.querySelectorAll(".pc-pip").forEach((pip, i) => {
+            pip.classList.toggle("done", i < homeCount);
+          });
+        }
+      }
+
+      /* ============================================================
+   11. BUILD DICE SLOTS & TOKENS
+   ============================================================ */
+      function buildDiceSlots() {
+        gameArea.querySelectorAll(".dice-slot").forEach((s) => s.remove());
+        diceSlots = [null, null, null, null];
+
+        for (let pi = 0; pi < 4; pi++) {
+          if (!state.players[pi]) continue;
+          const def = PLAYERS_DEF[pi];
+          const isPaired = state.teams.some((t) => t.length > 1);
+          const showCrown = RIG_RED_YELLOW && isRiggedPlayer(pi);
+
+          const slot = document.createElement("div");
+          slot.className =
+            `dice-slot slot-${def.id}` + (isPaired ? " paired" : "");
+          slot.style.gridArea = def.id;
+          slot.innerHTML = `
+      <div class="slot-name">${def.name}${showCrown ? ' <span class="slot-crown">👑</span>' : ""} <span class="done-check" style="display:none">✓</span></div>
+      <div class="dice" data-face="1">
+        ${'<span class="pip"></span>'.repeat(9)}
+      </div>
+      <div class="slot-progress">${'<span class="pc-pip"></span>'.repeat(4)}</div>
+    `;
+          const dice = slot.querySelector(".dice");
+          showDiceFace(dice, 1);
+          dice.addEventListener("click", () => onDiceClick(pi));
+
+          gameArea.appendChild(slot);
+          diceSlots[pi] = slot;
+          slot._dice = dice;
+        }
+      }
+
+      function buildTokens() {
+        tokenLayer.innerHTML = "";
+        tokenEls = [];
+
+        for (let pi = 0; pi < 4; pi++) {
+          const row = [];
+          const p = state.players[pi];
+          if (p) {
+            p.tokens.forEach((_, ti) => {
+              const el = document.createElement("div");
+              el.className = "token " + PLAYERS_DEF[pi].css;
+              el.dataset.pi = pi;
+              el.dataset.ti = ti;
+              el.addEventListener("click", () => onTokenClick(pi, ti));
+              tokenLayer.appendChild(el);
+              row.push(el);
+            });
+          }
+          tokenEls.push(row);
+        }
+      }
+
+      /* ============================================================
+   12. GAME SETUP
+   ============================================================ */
+      function startGame(count, opts) {
+        if (RIG_RED_YELLOW) {
+          count = 2;
+          opts.pairs = true;
+        }
+        state.playerCount = count;
+        state.opts = opts;
+        state.teams = buildTeams(count, opts.pairs);
+
+        const activeColors = new Set();
+        state.teams.forEach((t) => t.forEach((c) => activeColors.add(c)));
+
+        state.players = [0, 1, 2, 3].map((i) => {
+          if (!activeColors.has(i)) return null;
+          return { tokens: [-1, -1, -1, -1] };
+        });
+
+        if (opts.quick) {
+          state.teams.forEach((team) => {
+            team.forEach((pi) => {
+              state.players[pi].tokens[0] = 0;
+            });
+          });
+        }
+
+        state.current = 0;
+        state.dice = null;
+        state.rolling = false;
+        state.awaitingMove = false;
+        state.moves = [];
+        state.sixCount = 0;
+        state.gameOver = false;
+        state.started = true;
+
+        buildBoard();
+        buildTokens();
+        buildDiceSlots();
+
+        render();
+        playTurnStartSoundFor(currentTeam()[0]);
+      }
+
+      /* ============================================================
+   13. MOVE GENERATION
+   ============================================================ */
+      function pathBlocked(pi, from, to) {
+        if (!state.opts.block) return false;
+        for (let s = from + 1; s <= to; s++) {
+          if (s > 50) break;
+          const cell = coordOf(pi, s);
+          if (isBlockadeAt(cell[0], cell[1], pi)) return true;
+        }
+        return false;
+      }
+
+      function getMovesForTeam(teamColors, dice) {
+        const moves = [];
+        teamColors.forEach((pi) => {
+          const p = state.players[pi];
+          if (!p) return;
+          // Skip finished players — their tokens are all at 56
+          if (p.tokens.every((t) => t === 56)) return;
+
+          p.tokens.forEach((pos, ti) => {
+            if (pos === 56) return;
+            if (pos === -1) {
+              if (dice !== 6) return;
+              if (state.opts.block) {
+                const c = coordOf(pi, 0);
+                if (isBlockadeAt(c[0], c[1], pi)) return;
+              }
+              moves.push({ pi, ti, from: -1, to: 0 });
+              return;
+            }
+            const target = pos + dice;
+            if (target > 56) return;
+            if (pathBlocked(pi, pos, target)) return;
+            moves.push({ pi, ti, from: pos, to: target });
+          });
+        });
+        return moves;
+      }
+
+      /* ============================================================
+   14. PROGRESS METRIC (used to tune competitor AI)
+   ============================================================ */
+      function teamProgress(team) {
+        let total = 0;
+        team.forEach((pi) => {
+          const p = state.players[pi];
+          if (!p) return;
+          p.tokens.forEach((t) => {
+            if (t === -1) return;
+            if (t >= 51) total += 60;
+            else total += t;
+          });
+        });
+        return total;
+      }
+
+      /* ============================================================
+   15. 👑 RIGGED ROLL (Red + Yellow — always optimal)
+   ============================================================ */
+      function hasCaptureWith(team, d) {
+        const moves = getMovesForTeam(team, d);
+        for (const m of moves) {
+          if (m.to > 50) continue;
+          const cell = coordOf(m.pi, m.to);
+          for (let opi = 0; opi < 4; opi++) {
+            if (team.includes(opi)) continue;
+            const op = state.players[opi];
+            if (!op) continue;
+            for (const opos of op.tokens) {
+              if (opos < 0 || opos > 50) continue;
+              const oc = coordOf(opi, opos);
+              if (oc[0] === cell[0] && oc[1] === cell[1]) return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      function getRiggedRoll(team) {
+        const canSafelyRollSix = !state.opts.sixes || state.sixCount < 2;
+        const hasMove = (d) => getMovesForTeam(team, d).length > 0;
+
+        // 1. Release tokens from yard
+        const yardTokens = team.reduce(
+          (n, pi) =>
+            n +
+            (state.players[pi]
+              ? state.players[pi].tokens.filter((t) => t === -1).length
+              : 0),
+          0,
+        );
+        if (yardTokens > 0 && canSafelyRollSix && hasMove(6)) return 6;
+
+        // 2. Capture any opponent
+        for (let d = 6; d >= 1; d--) {
+          if (d === 6 && !canSafelyRollSix) continue;
+          if (hasMove(d) && hasCaptureWith(team, d)) return d;
+        }
+
+        // 3. Get a token home
+        for (let d = 1; d <= 6; d++) {
+          if (d === 6 && !canSafelyRollSix) continue;
+          const moves = getMovesForTeam(team, d);
+          if (moves.some((m) => m.to === 56)) return d;
+        }
+
+        // 4. Default — 6 for progress + extra turn
+        if (canSafelyRollSix && hasMove(6)) return 6;
+
+        // 5. Avoid triple-six forfeit
+        for (let d = 5; d >= 1; d--) {
+          if (hasMove(d)) return d;
+        }
+        return 1;
+      }
+
+      /* ============================================================
+   16. 🎲 COMPETITOR ROLL (Green + Blue — adaptive, tougher)
+   ============================================================
+   Bumped 6 probabilities and shifted thresholds so the
+   competitor stays closer to Red + Yellow throughout.
+   ============================================================ */
+      const COMP_WEIGHTS = {
+        // [P(1), P(2), P(3), P(4), P(5), P(6)]
+        farBehind: [0.03, 0.05, 0.1, 0.16, 0.21, 0.45], // ratio < 0.35 — very aggressive catch-up
+        behind: [0.05, 0.08, 0.12, 0.17, 0.21, 0.37], // ratio < 0.65 — strong pressure
+        balanced: [0.08, 0.11, 0.15, 0.18, 0.2, 0.28], // ratio < 0.90 — tight chase
+        ahead: [0.28, 0.25, 0.2, 0.14, 0.09, 0.04], // ratio >= 0.90 — dial back so R+Y recovers
+      };
+
+      function weightedPick(weights) {
+        const r = Math.random();
+        let acc = 0;
+        for (let i = 0; i < weights.length; i++) {
+          acc += weights[i];
+          if (r < acc) return i + 1;
+        }
+        return 3;
+      }
+
+      function getCompetitorRoll(team) {
+        const riggedTeam = state.teams.find((t) => isRiggedTeam(t));
+        const riggedProgress = riggedTeam ? teamProgress(riggedTeam) : 0;
+        const myProgress = teamProgress(team);
+        const ratio = riggedProgress > 0 ? myProgress / riggedProgress : 0.5;
+
+        let weights;
+        if (ratio < 0.35) weights = COMP_WEIGHTS.farBehind;
+        else if (ratio < 0.65) weights = COMP_WEIGHTS.behind;
+        else if (ratio < 0.9) weights = COMP_WEIGHTS.balanced;
+        else weights = COMP_WEIGHTS.ahead;
+
+        let value = weightedPick(weights);
+
+        // Ensure the rolled value actually has a valid move
+        if (getMovesForTeam(team, value).length === 0) {
+          for (let d = 6; d >= 1; d--) {
+            if (d === value) continue;
+            if (getMovesForTeam(team, d).length > 0) return d;
+          }
+        }
+        return value;
+      }
+
+      /* ============================================================
+   17. DICE ROLL
+   ============================================================ */
+      function onDiceClick(pi) {
+        if (!state.started || state.gameOver) return;
+        if (state.rolling || state.awaitingMove) return;
+
+        // Player must belong to the current team AND not be finished
+        const active = activeMembers();
+        if (!active.includes(pi)) {
+          SFX.error();
+          if (currentTeam().includes(pi) && isPlayerFinished(pi)) {
+            const partnerPi = currentTeam().find(
+              (c) => c !== pi && !isPlayerFinished(c),
+            );
+            const partnerName =
+              partnerPi !== undefined
+                ? PLAYERS_DEF[partnerPi].name
+                : "your partner";
+            toast(
+              `${PLAYERS_DEF[pi].name} is done — ${partnerName} rolls alone`,
+            );
+          } else {
+            const team = currentTeam();
+            const name =
+              team.length > 1
+                ? team.map((c) => PLAYERS_DEF[c].name).join(" & ")
+                : PLAYERS_DEF[team[0]].name;
+            toast(`It's ${name}'s turn`);
+          }
+          return;
+        }
+        rollDice();
+      }
+
+      function rollDice() {
+        if (
+          !state.started ||
+          state.gameOver ||
+          state.rolling ||
+          state.awaitingMove
+        )
+          return;
+
+        const active = activeMembers();
+        const primaryPi = active[0];
+
+        state.rolling = true;
+        renderDiceSlots();
+        playRollSoundFor(primaryPi);
+
+        // Only spin dice for active members
+        const activeDice = active
+          .map((pi) => diceSlots[pi] && diceSlots[pi]._dice)
+          .filter(Boolean);
+        activeDice.forEach((d) => d.classList.add("rolling"));
+
+        let ticks = 0;
+        const iv = setInterval(() => {
+          const face = 1 + Math.floor(Math.random() * 6);
+          activeDice.forEach((d) => showDiceFace(d, face));
+          ticks++;
+          if (ticks >= 12) {
+            clearInterval(iv);
+            activeDice.forEach((d) => d.classList.remove("rolling"));
+            finishRoll();
+          }
+        }, 58);
+      }
+
+      async function finishRoll() {
+        const team = currentTeam();
+        const active = activeMembers();
+        const primaryPi = active[0];
+
+        /* Determine final dice value */
+        let value;
+        if (isRiggedTeam(team)) {
+          value = getRiggedRoll(team);
+        } else if (RIG_RED_YELLOW) {
+          value = getCompetitorRoll(team);
+        } else {
+          value = 1 + Math.floor(Math.random() * 6);
+        }
+
+        state.dice = value;
+        state.rolling = false;
+
+        // Show face only on active members' dice
+        active.forEach((pi) => {
+          if (diceSlots[pi]) showDiceFace(diceSlots[pi]._dice, value);
+        });
+        playLandSoundFor(primaryPi);
+
+        if (value === 6) state.sixCount++;
+        else state.sixCount = 0;
+
+        if (state.opts.sixes && state.sixCount >= 3) {
+          SFX.error();
+          toast("Three sixes — turn forfeited!");
+          state.sixCount = 0;
+          render();
+          await sleep(900);
+          endTurn(false);
+          return;
+        }
+
+        const moves = getMovesForTeam(team, value);
+
+        if (moves.length === 0) {
+          SFX.error();
+          toast("No valid moves");
+          render();
+          await sleep(750);
+          endTurn(false);
+          return;
+        }
+
+        state.moves = moves;
+        state.awaitingMove = true;
+        render();
+
+        if (moves.length === 1 && value !== 6) {
+          await sleep(280);
+          onTokenClick(moves[0].pi, moves[0].ti);
+        }
+      }
+
+      /* ============================================================
+   18. TOKEN MOVE
+   ============================================================ */
+      async function onTokenClick(pi, ti) {
+        if (state.gameOver || !state.awaitingMove) return;
+        if (!activeMembers().includes(pi)) return;
+
+        const move = state.moves.find((m) => m.pi === pi && m.ti === ti);
+        if (!move) return;
+
+        state.awaitingMove = false;
+        state.moves = [];
+        render();
+
+        const p = state.players[pi];
+        const diceValue = state.dice;
+        const from = p.tokens[ti];
+        const to = move.to;
+
+        const el = tokenEls[pi][ti];
+        el.classList.add("moving");
+
+        if (from === -1) {
+          p.tokens[ti] = 0;
+          SFX.step();
+          render();
+          await sleep(190);
+        } else {
+          for (let s = from + 1; s <= to; s++) {
+            p.tokens[ti] = s;
+            SFX.step();
+            render();
+            await sleep(115);
+          }
+        }
+        el.classList.remove("moving");
+
+        /* ---- capture resolution ---- */
+        let captured = false;
+
+        if (to <= 50) {
+          const cell = coordOf(pi, to);
+          const bypassSafe = isRiggedPlayer(pi);
+          const protectedCell =
+            state.opts.safe && isSafeCell(pi, to) && !bypassSafe;
+
+          if (!protectedCell) {
+            for (let opi = 0; opi < 4; opi++) {
+              const op = state.players[opi];
+              if (!op) continue;
+              if (sameTeam(pi, opi)) continue;
+              op.tokens.forEach((opos, oti) => {
+                if (opos < 0 || opos > 50) return;
+                const oc = coordOf(opi, opos);
+                if (oc[0] === cell[0] && oc[1] === cell[1]) {
+                  op.tokens[oti] = -1;
+                  captured = true;
+                }
+              });
+            }
+          }
+
+          if (captured) {
+            SFX.capture();
+            render();
+            toast(
+              isRiggedPlayer(pi)
+                ? "Red & Yellow strike! Extra turn 🎯"
+                : "Captured! Extra turn 🎯",
+            );
+            await sleep(500);
+          }
+        }
+
+        /* ---- reached home ---- */
+        const reachedHome = to === 56;
+        if (reachedHome) {
+          SFX.home();
+          render();
+
+          const playerFinished = isPlayerFinished(pi);
+          if (playerFinished) {
+            const partnerPi = currentTeam().find(
+              (c) => c !== pi && !isPlayerFinished(c),
+            );
+            if (partnerPi !== undefined) {
+              toast(
+                `${PLAYERS_DEF[pi].name} finished! ${PLAYERS_DEF[partnerPi].name} carries on alone ✓`,
+              );
+            } else {
+              toast(`${PLAYERS_DEF[pi].name} finished! ✓`);
+            }
+          } else {
+            toast("Token home! 🏠");
+          }
+          await sleep(520);
+          render();
+        }
+
+        /* ---- team win check ---- */
+        const team = currentTeam();
+        const teamWins = team.every((cpi) =>
+          state.players[cpi].tokens.every((t) => t === 56),
+        );
+        if (teamWins) {
+          state.gameOver = true;
+          render();
+          SFX.win();
+          launchConfetti();
+          await sleep(500);
+          showWin(team);
+          return;
+        }
+
+        const extra = diceValue === 6 || captured || reachedHome;
+        if (extra && diceValue !== 6) state.sixCount = 0;
+
+        endTurn(extra);
+        if (extra && !state.gameOver) toast("Extra turn! 🎲");
+      }
+
+      /* ============================================================
+   19. TURN MANAGEMENT
+   ============================================================ */
+      function endTurn(extra) {
+        state.awaitingMove = false;
+        state.moves = [];
+        state.dice = null;
+
+        if (state.gameOver) {
+          render();
+          return;
+        }
+
+        if (!extra) {
+          state.sixCount = 0;
+          let next = state.current;
+          let tries = 0;
+          do {
+            next = (next + 1) % state.teams.length;
+            tries++;
+            if (tries > state.teams.length) break;
+          } while (
+            state.teams[next].every((cpi) =>
+              state.players[cpi].tokens.every((t) => t === 56),
+            )
+          );
+          state.current = next;
+
+          // Play turn sound for first active member of the new team
+          const nextActive = state.teams[next].find(
+            (cpi) => !isPlayerFinished(cpi),
+          );
+          playTurnStartSoundFor(
+            nextActive !== undefined ? nextActive : state.teams[next][0],
+          );
+        }
+
+        render();
+      }
+
+      /* ============================================================
+   20. WIN / CONFETTI
+   ============================================================ */
+      function showWin(teamColors) {
+        const names = teamColors.map((c) => PLAYERS_DEF[c].name);
+        const title =
+          names.join(" & ") + " win" + (names.length > 1 ? "" : "s") + "!";
+
+        $("winTitle").textContent = title;
+        $("winTitle").style.color =
+          teamColors.length > 1
+            ? "transparent"
+            : PLAYERS_DEF[teamColors[0]].color;
+
+        if (teamColors.length > 1) {
+          const grads = teamColors.map((c) => PLAYERS_DEF[c].color);
+          $("winTitle").style.background =
+            `linear-gradient(92deg, ${grads.join(", ")})`;
+          $("winTitle").style.webkitBackgroundClip = "text";
+          $("winTitle").style.backgroundClip = "text";
+        } else {
+          $("winTitle").style.background = "";
+          $("winTitle").style.webkitBackgroundClip = "";
+          $("winTitle").style.backgroundClip = "";
+        }
+
+        $("winSub").textContent =
+          teamColors.length > 1
+            ? "Both colours made it home. 🏆"
+            : "All four tokens made it home. 🏆";
+
+        winModal.classList.add("open");
+      }
+
+      function launchConfetti() {
+        const colors = [
+          "#ef4444",
+          "#22c55e",
+          "#eab308",
+          "#3b82f6",
+          "#a855f7",
+          "#ec4899",
+          "#06b6d4",
+        ];
+        for (let i = 0; i < 110; i++) {
+          const c = document.createElement("div");
+          c.className = "confetti";
+          c.style.left = Math.random() * 100 + "vw";
+          c.style.background =
+            colors[Math.floor(Math.random() * colors.length)];
+          c.style.animationDuration = 2.3 + Math.random() * 1.9 + "s";
+          c.style.animationDelay = Math.random() * 0.7 + "s";
+          c.style.width = 6 + Math.random() * 7 + "px";
+          c.style.height = 10 + Math.random() * 9 + "px";
+          c.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+          document.body.appendChild(c);
+          setTimeout(() => c.remove(), 5200);
+        }
+      }
+
+      /* ============================================================
+   21. UI WIRING
+   ============================================================ */
+      let selectedCount = RIG_RED_YELLOW ? 2 : 4;
+
+      function refreshPairsToggle() {
+        const pairsInput = $("optPairs");
+        const pairsLabel = $("togglePairs");
+        if (RIG_RED_YELLOW) {
+          pairsInput.checked = true;
+          pairsInput.disabled = true;
+          pairsLabel.classList.add("disabled");
+          return;
+        }
+        if (selectedCount === 2) {
+          pairsInput.disabled = false;
+          pairsLabel.classList.remove("disabled");
+        } else {
+          pairsInput.checked = false;
+          pairsInput.disabled = true;
+          pairsLabel.classList.add("disabled");
+        }
+      }
+
+      document.querySelectorAll("#playerCount button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (RIG_RED_YELLOW) return;
+          document
+            .querySelectorAll("#playerCount button")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          selectedCount = parseInt(btn.dataset.count, 10);
+          refreshPairsToggle();
+        });
+      });
+
+      function applyRiggedSetupUI() {
+        if (!RIG_RED_YELLOW) return;
+        document.querySelectorAll("#playerCount button").forEach((b) => {
+          b.classList.toggle("active", b.dataset.count === "2");
+          b.disabled = true;
+        });
+        $("optPairs").checked = true;
+        $("optPairs").disabled = true;
+        $("togglePairs").classList.add("disabled");
+        $("rigBadge").classList.remove("hidden");
+        $("setupSub").textContent =
+          "Local multiplayer · Red + Yellow favourites — but Green + Blue fight hard!";
+      }
+
+      applyRiggedSetupUI();
+      refreshPairsToggle();
+
+      $("startBtn").addEventListener("click", () => {
+        ac();
+        const opts = {
+          safe: $("optSafe").checked,
+          block: $("optBlock").checked,
+          quick: $("optQuick").checked,
+          sixes: $("optSixes").checked,
+          pairs: RIG_RED_YELLOW
+            ? true
+            : $("optPairs").checked && selectedCount === 2,
+        };
+        setupModal.classList.remove("open");
+        startGame(RIG_RED_YELLOW ? 2 : selectedCount, opts);
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.code === "Space") {
+          e.preventDefault();
+          if (!state.started) return;
+          if (setupModal.classList.contains("open")) return;
+          if (rulesModal.classList.contains("open")) return;
+          if (winModal.classList.contains("open")) return;
+          if (confirmModal.classList.contains("open")) return;
+          rollDice();
+        }
+      });
+
+      $("soundBtn").addEventListener("click", () => {
+        soundOn = !soundOn;
+        $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+        $("soundBtn").classList.toggle("muted", !soundOn);
+        if (soundOn) {
+          ac();
+          tone(880, 0.09, "sine", 0.09);
+        }
+      });
+
+      $("rulesBtn").addEventListener("click", () =>
+        rulesModal.classList.add("open"),
+      );
+      $("closeRules").addEventListener("click", () =>
+        rulesModal.classList.remove("open"),
+      );
+      rulesModal.addEventListener("click", (e) => {
+        if (e.target === rulesModal) rulesModal.classList.remove("open");
+      });
+
+      function openNewGame() {
+        winModal.classList.remove("open");
+        if (state.started && !state.gameOver) {
+          confirmModal.classList.add("open");
+        } else {
+          setupModal.classList.add("open");
+        }
+      }
+
+      $("newGameBtn").addEventListener("click", openNewGame);
+
+      $("confirmCancel").addEventListener("click", () => {
+        confirmModal.classList.remove("open");
+      });
+
+      $("confirmYes").addEventListener("click", () => {
+        confirmModal.classList.remove("open");
+        state.started = false;
+        state.gameOver = false;
+        state.awaitingMove = false;
+        state.rolling = false;
+        state.moves = [];
+        state.dice = null;
+        setupModal.classList.add("open");
+      });
+
+      confirmModal.addEventListener("click", (e) => {
+        if (e.target === confirmModal) confirmModal.classList.remove("open");
+      });
+
+      $("playAgain").addEventListener("click", () => {
+        winModal.classList.remove("open");
+        setupModal.classList.add("open");
+      });
+
+      /* ============================================================
+   22. BOOT
+   ============================================================ */
+      buildBoard();
+    </script>
+  </body>
+</html>
